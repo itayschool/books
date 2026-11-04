@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f4f6fb">
+    <meta name="description" content="ספרייה אישית לקריאה, לימוד וארגון ספרי PDF ומסמכי Word.">
+    <title>Books — הספרייה האישית שלך</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%235368d9'/%3E%3Cpath d='M18 15h20a10 10 0 0 1 10 10v25H27a9 9 0 0 0-9 9z' fill='none' stroke='white' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap">
+    <link rel="stylesheet" href="assets/css/app.css">
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script defer src="assets/js/app.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <header class="header">
+            <div class="brand" aria-label="פרופיל המשתמש">
+                <span class="brand-mark" id="user-avatar" aria-hidden="true">📚</span>
+                <span><span class="brand-title" id="profile-name">your-username</span><span class="brand-caption">ברוך שובך.</span></span>
+            </div>
+            <div class="header-tools">
+                <button id="settings-nav" class="library-control" type="button" data-button-id="home-settings" onclick="toggleSettingsPage()">⚙ <span data-button-label>הגדרות</span></button>
+                <input class="file-input" type="file" id="file-input" accept=".pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" aria-label="בחירת קובץ PDF או Word" onchange="handleFileSelect(event)">
+                <button class="btn-add" id="add-book-button" data-button-id="home-add" type="button" onclick="document.getElementById('file-input').click()">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    <span data-button-label>הוספת ספר</span>
+                </button>
+                <div id="custom-home-buttons" class="custom-button-host" aria-label="כפתורים אישיים"></div>
+            </div>
+        </header>
+
+        <main id="library-page" class="main-container">
+            <section class="welcome-row" aria-labelledby="page-title">
+                <div>
+                    <p class="eyebrow">מקום לכל הספרים שלך</p>
+                    <h1 class="page-title" id="page-title">הספרייה שלך</h1>
+                    <p class="page-subtitle">לחיצה אחת פותחת ספר לקריאה.</p>
+                </div>
+                <div class="library-count" aria-live="polite"><span class="count-dot" aria-hidden="true"></span><span id="book-count">0 ספרים</span></div>
+            </section>
+
+            <section class="shelf-panel" aria-labelledby="shelf-title">
+                <div class="shelf-topline">
+                    <div><h2 class="shelf-heading" id="shelf-title">הספרים שלי</h2><p class="shelf-description">ספרי PDF ומסמכי Word, מוכנים להמשך קריאה.</p></div>
+                    <label class="search-wrap">
+                        <span class="visually-hidden">חיפוש בספרייה</span>
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                        <input class="search-input" id="book-search" type="search" placeholder="חיפוש ספר..." autocomplete="off">
+                    </label>
+                </div>
+                <div id="continue-card" class="continue-card" aria-live="polite"></div>
+                <div class="library-toolbar" aria-label="ארגון הספרייה">
+                    <select id="library-filter" class="library-control" aria-label="סינון ספרים"><option value="all">כל הספרים</option><option value="favorites">מועדפים</option></select>
+                    <select id="folder-filter" class="library-control" aria-label="סינון לפי מדף"><option value="all">כל המדפים</option></select>
+                    <select id="tag-filter" class="library-control" aria-label="סינון לפי תגית"><option value="all">כל התגיות</option></select>
+                    <select id="library-sort" class="library-control" aria-label="סידור הספרים"><option value="added">נוספו לאחרונה</option><option value="title">לפי כותרת</option><option value="opened">נפתחו לאחרונה</option></select>
+                    <button class="library-control" type="button" data-button-id="home-new-shelf" onclick="createLibraryFolder()">+ <span data-button-label>מדף חדש</span></button>
+                    <select id="library-view" class="library-control" aria-label="תצוגת ספרים"><option value="large-icons">סמלים גדולים</option><option value="icons">סמלים</option><option value="list">רשימה</option><option value="details">פרטים</option></select>
+                    <select id="library-density" class="library-control" aria-label="מרווח הכרטיסים"><option value="compact">צפוף</option><option value="comfortable">נוח</option><option value="spacious">מרווח</option></select>
+                    <span id="storage-usage" class="shelf-description" aria-live="polite"></span>
+                </div>
+                <div class="library-workspace">
+                    <div id="books-grid" class="books-grid view-large-icons density-comfortable" aria-live="polite"></div>
+                </div>
+            </section>
+        </main>
+        <main id="settings-page" class="main-container settings-page" hidden>
+            <section class="settings-head">
+                <p class="eyebrow">התאמה אישית</p>
+                <h1 class="page-title">הגדרות</h1>
+                <p class="page-subtitle">התאימו את הספרייה ואת חוויית הקריאה לסגנון שלכם.</p>
+            </section>
+            <div class="settings-grid">
+                <section class="settings-card">
+                    <h2>פרופיל וצבע</h2>
+                    <p class="settings-help">השם יופיע בראש הספרייה. בחרו גם את צבע הממשק.</p>
+                    <div class="settings-row"><label for="username-setting">שם משתמש</label><input id="username-setting" class="settings-input" type="text" maxlength="40" placeholder="your-username"></div>
+                    <div class="settings-row"><label for="avatar-setting">אווטאר</label><select id="avatar-setting" class="settings-input"><option value="👤">👤 משתמש</option><option value="📚">📚 ספרים</option><option value="🦉">🦉 ינשוף</option><option value="🌿">🌿 עלה</option><option value="✨">✨ כוכבים</option><option value="🚀">🚀 חלל</option></select></div>
+                    <div class="settings-row"><label for="language-setting">שפת הממשק</label><select id="language-setting" class="settings-input"><option value="he">עברית</option><option value="en">English</option></select></div>
+                    <div class="settings-row"><label for="accent-setting">צבע הדגשה</label><input id="accent-setting" class="settings-color" type="color" value="#5368d9" aria-label="בחירת צבע הדגשה"></div>
+                    <div class="settings-row"><button class="modal-action primary" type="button" onclick="saveProfileSettings()">שמירת פרופיל</button></div>
+                </section>
+                <section class="settings-card">
+                    <h2>תצוגת הספרייה</h2>
+                    <p class="settings-help">בחרו את סידור הספרים והמרווח ביניהם.</p>
+                    <div class="settings-row"><label for="settings-appearance">מראה הממשק</label><select id="settings-appearance" class="settings-input"><option value="system">לפי המכשיר</option><option value="light">בהירה</option><option value="dark">כהה</option></select></div>
+                    <div class="settings-row"><label for="settings-text-size">גודל טקסט</label><select id="settings-text-size" class="settings-input"><option value="small">קטן</option><option value="normal">רגיל</option><option value="large">גדול</option></select></div>
+                    <div class="settings-row"><label for="settings-view">סגנון תצוגה</label><select id="settings-view" class="settings-input"><option value="large-icons">סמלים גדולים</option><option value="icons">סמלים</option><option value="list">רשימה</option><option value="details">פרטים</option></select></div>
+                    <div class="settings-row"><label for="settings-density">מרווח</label><select id="settings-density" class="settings-input"><option value="compact">צפוף</option><option value="comfortable">נוח</option><option value="spacious">מרווח</option></select></div>
+                    <label class="settings-toggle"><span>הצגת התקדמות קריאה בכרטיסים</span><input id="settings-progress" type="checkbox" checked></label>
+                    <label class="settings-toggle"><span>הצגת הספר האחרון בראש הספרייה</span><input id="settings-continue" type="checkbox" checked></label>
+                </section>
+                <section class="settings-card wide">
+                    <h2>ערכות נושא</h2>
+                    <p class="settings-help">ערכת הנושא משפיעה על הספרייה, ההגדרות והקורא.</p>
+                    <div id="theme-gallery" class="theme-gallery"></div>
+                    <button id="create-theme-button" class="modal-action primary create-theme-button" type="button">✦ יצירת ערכת נושא חדשה</button>
+                </section>
+                <section class="settings-card wide theme-builder-card">
+                    <h2>יוצר ערכת נושא</h2>
+                    <p class="settings-help">הערכות נשמרות בדפדפן וניתן ליצור כמה שרוצים. תמונות מקומיות נשמרות במאגר המקומי של האתר.</p>
+                    <div class="theme-builder-grid">
+                        <label>שם הערכה<input id="theme-name-input" class="settings-input" type="text" maxlength="48" placeholder="הערכה שלי"></label>
+                        <label>צבע טקסט<input id="theme-text-input" class="settings-color" type="color" value="#edf0f7"></label>
+                        <label>צבע סרגל וכלים<input id="theme-toolbar-input" class="settings-color" type="color" value="#202633"></label>
+                        <label>צבע רקע<input id="theme-background-input" class="settings-color" type="color" value="#11141d"></label>
+                        <label>צבע הדגשה<input id="theme-accent-input" class="settings-color" type="color" value="#7b8cf2"></label>
+                        <label>תמונות רקע מוכנות<select id="wallpaper-select" class="settings-input"><option value="">ללא תמונת רקע</option></select></label>
+                        <label class="wide-field">קישור לתמונה<input id="wallpaper-url-input" class="settings-input" type="url" placeholder="https://example.com/wallpaper.webp"></label>
+                        <label class="wide-field">תמונה מהמכשיר<input id="wallpaper-file-input" class="settings-input" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpeg,.jpg,.webp"></label>
+                    </div>
+                    <div id="wallpaper-gallery" class="wallpaper-gallery" aria-label="תצוגות מקדימות של תמונות רקע"></div>
+                    <div id="theme-live-preview" class="theme-live-preview">תצוגה מקדימה של ערכת הנושא</div>
+                    <div class="settings-row"><button class="modal-action primary" type="button" onclick="saveCustomTheme()">שמירת ערכת נושא</button><button class="modal-action secondary" type="button" onclick="previewThemeDraft()">תצוגה מקדימה</button></div>
+                </section>
+                <section class="settings-card wide">
+                    <h2>עורך כפתורים</h2>
+                    <p class="settings-help">בחרו מסך כדי לשנות כפתורים, כולל תפריטי הספרים. אפשר ליצור כפתורים ופעולות משלכם דרך שפת ההגדרות הבטוחה שבהמשך.</p>
+                    <div class="settings-row"><label for="button-editor-area">אזור לעריכה</label><select id="button-editor-area" class="settings-input"><option value="home">עמוד הספרייה</option><option value="reader">סרגל הקורא</option></select></div>
+                    <div id="button-editor-list" class="button-editor-list"></div>
+                    <div class="custom-code-editor">
+                        <label class="field-label" for="custom-button-code">כפתורים ופעולות משלכם</label>
+                        <p class="settings-help">הדביקו הגדרות כפתור בפורמט המובנה. מיקומים: <code>home_toolbar</code>, <code>reader_toolbar</code>, <code>home_page_book_cover_dropdown_menu</code>. הפעולות: <code>settings</code>, <code>add-book</code>, <code>new-shelf</code>, <code>favorites</code>, <code>all-books</code>, <code>open_book</code>, <code>toggle_favorite</code>, <code>rename_book</code>, <code>edit_tags</code>, <code>delete_book</code>, <code>formulas</code>, <code>geometry</code>, <code>tiktek</code>, <code>download-page</code>, <code>calculator</code>, <code>bookmarks</code>, <code>toc</code>, <code>thumbnails</code>, <code>bookmark-current</code>, <code>fullscreen</code>, <code>shortcuts</code>, <code>zoom-in</code>, <code>zoom-out</code>, <code>next-page</code>, <code>previous-page</code>, <code>close-reader</code>.</p>
+                        <p class="settings-help">בכל בלוק נדרשים <code>location</code>, <code>title</code> ו־<code>action</code>. אפשר להוסיף <code>color</code> ו־<code>textcolor</code>. כל כפתור יבצע פעולה מהרשימה בלבד.</p>
+                        <textarea id="custom-button-code" class="settings-input custom-button-code" spellcheck="false" dir="ltr" placeholder='new_button; location: home_page_book_cover_dropdown_menu; title: "Toggle favorite"; action: toggle_favorite; color: #43A047; textcolor: #FFFFFF;'></textarea>
+                        <button class="modal-action primary" type="button" onclick="createButtonsFromCode()">יצירת כפתורים מהקוד</button>
+                    </div>
+                </section>
+                <section class="settings-card wide">
+                    <h2>קריאה ונגישות</h2>
+                    <p class="settings-help">התאימו את התנועה והאנימציות בהתאם להעדפה שלכם.</p>
+                    <label class="settings-toggle"><span>הפחתת אנימציות</span><input id="settings-reduce-motion" type="checkbox"></label>
+                </section>
+                <section class="settings-card wide">
+                    <h2>ספרים שנמחקו</h2>
+                    <p class="settings-help">ספרים שהוסרו נשמרים כאן כדי שאפשר יהיה לשחזר אותם. מחיקה לצמיתות אינה ניתנת לביטול.</p>
+                    <div id="deleted-books-list" class="deleted-books-list"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <section id="reader-modal" class="reader-modal" role="dialog" aria-modal="true" aria-label="קורא ספרים" aria-hidden="true">
+        <header class="reader-topbar">
+            <div id="reader-book-title" class="document-title" title="">שם הספר</div>
+            <div class="reader-spacer"></div>
+            <div class="page-navigator" aria-label="מספר עמוד">
+                <label class="visually-hidden" for="page-num-input">מעבר לעמוד</label>
+                <input type="text" id="page-num-input" value="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" spellcheck="false" onchange="jumpToPage(this.value)" onkeydown="if(event.key==='Enter'){jumpToPage(this.value);this.blur()}">
+                <span>/</span><span id="page-count" class="page-navigator__total">0</span>
+                <button class="page-step-button" type="button" data-button-id="reader-page-previous" aria-label="העמוד הקודם" title="העמוד הקודם" onclick="movePage(-1)">↑</button>
+                <button class="page-step-button" type="button" data-button-id="reader-page-next" aria-label="העמוד הבא" title="העמוד הבא" onclick="movePage(1)">↓</button>
+            </div>
+            <div class="reader-actions">
+                <details class="reader-tools-menu">
+                    <summary class="reader-btn-icon" data-button-id="reader-tools-menu" aria-label="כלי קריאה נוספים" title="כלי קריאה נוספים">⋯</summary>
+                    <div class="reader-tools-popover">
+                        <button class="reader-btn-icon" type="button" data-button-id="reader-bookmark-add" aria-label="הוספת סימניה" onclick="addCurrentBookmark()">🔖 <span class="button-visible-label">הוספת סימניה</span></button>
+                        <button class="reader-btn-icon" type="button" data-button-id="reader-thumbnails" aria-label="תמונות ממוזערות" onclick="toggleThumbnails()">▤ <span class="button-visible-label">תמונות ממוזערות</span></button>
+                        <select id="reader-theme" class="reader-btn-icon" aria-label="ערכת נושא" onchange="setReaderTheme(this.value)"><option value="dark">כהה</option><option value="midnight">חצות</option><option value="light">בהירה</option><option value="sepia">ספיה</option><option value="paper">נייר</option><option value="forest">יער</option><option value="ocean">אוקיינוס</option><option value="rose">ורוד</option><option value="lavender">לבנדר</option><option value="mint">מנטה</option><option value="amber">ענבר</option><option value="slate">צפחה</option><option value="plum">שזיף</option><option value="crimson">ארגמן</option><option value="solarized">סולארייזד</option><option value="contrast">ניגודיות גבוהה</option></select>
+                        <button class="reader-btn-icon" type="button" data-button-id="reader-fullscreen" aria-label="מסך מלא" onclick="toggleReaderFullscreen()">⛶ <span class="button-visible-label">מסך מלא</span></button>
+                        <button class="reader-btn-icon" type="button" data-button-id="reader-shortcuts" aria-label="קיצורי מקלדת" onclick="showReaderShortcuts()">⌨ <span class="button-visible-label">קיצורי מקלדת</span></button>
+                        <button class="reader-btn-icon" type="button" data-button-id="reader-zoom-out" aria-label="הקטנת תצוגה" onclick="zoom(-1)">− <span class="button-visible-label">הקטנה</span></button>
+                        <button class="reader-btn-icon" type="button" data-button-id="reader-zoom-in" aria-label="הגדלת תצוגה" onclick="zoom(1)">＋ <span class="button-visible-label">הגדלה</span></button>
+                    </div>
+                </details>
+                <button class="reader-btn-icon reference-toolbar-button" type="button" data-button-id="reader-formulas" title="Formulas" aria-label="Formulas" onclick="toggleReferencePdf('formulas')"><span class="button-visible-label">Formulas</span></button>
+                <button class="reader-btn-icon reference-toolbar-button" type="button" data-button-id="reader-geometry" title="Geometry" aria-label="Geometry" onclick="toggleReferencePdf('geometry')"><span class="button-visible-label">Geometry</span></button>
+                <button class="reader-btn-icon reference-toolbar-button" type="button" data-button-id="reader-tiktek" title="Tiktek" aria-label="Tiktek" onclick="toggleReferencePdf('tiktek')"><span class="button-visible-label">Tiktek</span></button>
+                <button class="reader-btn-icon download-page-button" type="button" data-button-id="reader-download-page" title="הורדת העמוד כתמונה" aria-label="הורדת העמוד כתמונה" onclick="downloadCurrentPage()"><span class="button-visible-label">הורדת עמוד</span></button>
+                <button class="reader-btn-icon" type="button" data-button-id="reader-calculator" title="מחשבון מדעי" aria-label="פתיחת מחשבון מדעי" onclick="toggleReaderPanel('calculator-panel')">∑</button>
+                <button class="reader-btn-icon" type="button" data-button-id="reader-bookmarks" title="סימניות והערות" aria-label="סימניות והערות" onclick="toggleReaderPanel('bookmarks-panel')">☷</button>
+                <div id="custom-reader-buttons" class="custom-button-host reader-custom-button-host" aria-label="כפתורים אישיים"></div>
+                <button class="reader-btn-icon btn-close-reader" type="button" data-button-id="reader-close" onclick="closeReader()" aria-label="סגירת הקורא" title="סגירה">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span class="reader-action-label button-visible-label">סגירה</span>
+                </button>
+            </div>
+        </header>
+        <div id="bookmarks-panel" class="reader-popover" hidden><h3>סימניות והערות בספר הזה</h3><div id="bookmark-list"></div><div class="reader-note-row"><button class="reader-panel-btn" type="button" data-button-id="reader-bookmark-note" onclick="addCurrentNote()">הערה בעמוד הנוכחי</button></div></div>
+        <button id="toc-sidebar-toggle" class="toc-sidebar-toggle" data-button-id="reader-toc" type="button" aria-expanded="false" aria-controls="toc-sidebar" aria-label="פתיחת תוכן העניינים" onclick="toggleTocSidebar()"><span data-button-label>☰</span></button>
+        <aside id="toc-sidebar" class="toc-sidebar" aria-label="תוכן עניינים">
+            <div class="toc-sidebar-heading"><h2>תוכן עניינים</h2><button class="toc-manage-button" data-button-id="reader-toc-add" type="button" aria-label="הוספה וניהול של פרקים" onclick="openTocModal()">＋ פרק</button></div>
+            <div id="toc-sidebar-list" class="toc-sidebar-list"><p class="toc-empty">בחרו ספר כדי לראות פרקים.</p></div>
+        </aside>
+        <aside id="calculator-panel" class="reader-popover calculator-drawer" hidden role="complementary" aria-label="מחשבון מדעי">
+            <div class="calculator-heading" id="calculator-drag-handle" tabindex="0" aria-label="גרירת המחשבון">
+                <div><p class="calculator-eyebrow">כלי לימוד</p><h2>מחשבון מדעי</h2></div>
+                <button class="calculator-close" data-button-id="reader-calculator-close" type="button" aria-label="סגירת המחשבון" onclick="toggleReaderPanel('calculator-panel')">×</button>
+            </div>
+            <div class="calculator-display">
+                <label for="calculator-expression">ביטוי</label>
+                <input id="calculator-expression" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" dir="ltr" placeholder="למשל: sin(30) + 2^3">
+                <output id="calculator-result" aria-live="polite" dir="ltr">0</output>
+                <p id="calculator-status" aria-live="polite">Enter לחישוב · Esc לסגירה</p>
+            </div>
+            <div class="calculator-options">
+                <label for="calculator-angle-mode">יחידות זווית</label>
+                <select id="calculator-angle-mode" aria-label="יחידות זווית"><option value="deg">מעלות</option><option value="rad">רדיאנים</option></select>
+            </div>
+            <div class="calculator-memory" aria-label="פעולות זיכרון">
+                <button type="button" data-calc-action="memory-clear">MC</button>
+                <button type="button" data-calc-action="memory-recall">MR</button>
+                <button type="button" data-calc-action="memory-add">M+</button>
+                <button type="button" data-calc-action="memory-subtract">M−</button>
+            </div>
+            <div id="calculator-keypad" class="calculator-keypad" aria-label="מקשי מחשבון">
+                <button type="button" data-calc-insert="(" >(</button><button type="button" data-calc-insert=")">)</button><button type="button" data-calc-insert="sin(">sin</button><button type="button" data-calc-insert="cos(">cos</button><button type="button" data-calc-insert="tan(">tan</button>
+                <button type="button" data-calc-insert="asin(">sin⁻¹</button><button type="button" data-calc-insert="acos(">cos⁻¹</button><button type="button" data-calc-insert="atan(">tan⁻¹</button><button type="button" data-calc-insert="ln(">ln</button><button type="button" data-calc-insert="log(">log</button>
+                <button type="button" data-calc-insert="sqrt(">√</button><button type="button" data-calc-insert="^2">x²</button><button type="button" data-calc-insert="^">xʸ</button><button type="button" data-calc-insert="!">x!</button><button type="button" data-calc-insert="%">%</button>
+                <button type="button" data-calc-insert="7">7</button><button type="button" data-calc-insert="8">8</button><button type="button" data-calc-insert="9">9</button><button type="button" class="operator" data-calc-insert="/">÷</button><button type="button" class="utility" data-calc-action="backspace" aria-label="מחיקת תו אחרון">⌫</button>
+                <button type="button" data-calc-insert="4">4</button><button type="button" data-calc-insert="5">5</button><button type="button" data-calc-insert="6">6</button><button type="button" class="operator" data-calc-insert="*">×</button><button type="button" class="utility" data-calc-action="clear">AC</button>
+                <button type="button" data-calc-insert="1">1</button><button type="button" data-calc-insert="2">2</button><button type="button" data-calc-insert="3">3</button><button type="button" class="operator" data-calc-insert="-">−</button><button type="button" data-calc-insert="Ans">Ans</button>
+                <button type="button" data-calc-insert="0">0</button><button type="button" data-calc-insert=".">.</button><button type="button" data-calc-insert="pi">π</button><button type="button" class="operator" data-calc-insert="+">+</button><button type="button" class="equals" data-calc-action="evaluate">=</button>
+                <button type="button" data-calc-insert="e">e</button><button type="button" data-calc-insert="abs(">abs</button><button type="button" data-calc-insert="exp(">exp</button><button type="button" data-calc-insert="sqrt(">√</button><button type="button" data-calc-insert="^">^</button>
+            </div>
+            <details class="calculator-history"><summary data-button-id="reader-calculator-history">חישובים אחרונים</summary><div id="calculator-history-list"><p>החישובים יופיעו כאן.</p></div></details>
+        </aside>
+        <aside id="page-thumbnails" class="page-thumbnails" hidden aria-label="תמונות ממוזערות של עמודים"></aside>
+        <div class="reader-content">
+            <div id="document-viewport" class="document-viewport__scroll" aria-label="עמודי הספר" onscroll="handleScroll()"></div>
+            <aside id="reference-viewer" class="reference-viewer" hidden aria-label="מסמך עזר">
+                <div class="reference-viewer-heading"><div><p class="calculator-eyebrow">מסמך עזר</p><h2 id="reference-viewer-title">Formulas</h2></div><div class="reference-viewer-controls"><button type="button" id="reference-zoom-out" data-button-id="reader-reference-zoom-out" aria-label="הקטנת תצוגה" onclick="zoomReference(-1)">−</button><output id="reference-zoom-label">100%</output><button type="button" id="reference-zoom-in" data-button-id="reader-reference-zoom-in" aria-label="הגדלת תצוגה" onclick="zoomReference(1)">＋</button><button type="button" id="reference-close" data-button-id="reader-reference-close" class="calculator-close" aria-label="סגירת מסמך עזר" onclick="closeReferencePdf()">×</button></div></div>
+                <p id="reference-viewer-status" class="reference-viewer-status" aria-live="polite"></p>
+                <div id="reference-pages" class="reference-pages"></div>
+                <div id="tiktek-frame-host" class="tiktek-frame-host" hidden><iframe id="tiktek-frame" class="tiktek-frame" title="Tiktek" sandbox="allow-scripts allow-forms allow-same-origin" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+            </aside>
+        </div>
+    </section>
+
+    <div id="icon-picker-modal" class="custom-modal" role="dialog" aria-modal="true" aria-labelledby="icon-picker-title" aria-hidden="true">
+        <div class="custom-modal-box icon-picker-box">
+            <h2 class="modal-heading" id="icon-picker-title">בחירת סמל</h2>
+            <p class="modal-copy">בחרו סמל מתיקיית icons, קישור SVG או קובץ SVG מהמכשיר.</p>
+            <label class="field-label" for="icon-picker-preset">סמלים מוכנים</label>
+            <select id="icon-picker-preset" class="settings-input"><option value="">ללא סמל מותאם</option></select>
+            <div id="custom-icon-assets" class="custom-icon-assets"></div>
+            <label class="field-label" for="icon-picker-url">קישור לקובץ SVG</label>
+            <input id="icon-picker-url" class="settings-input" type="url" placeholder="https://example.com/icon.svg">
+            <label class="field-label" for="icon-picker-file">קובץ SVG מהמחשב</label>
+            <input id="icon-picker-file" class="settings-input" type="file" accept="image/svg+xml,.svg">
+            <div class="custom-modal-actions">
+                <button class="modal-action secondary" type="button" onclick="closeIconPicker()">ביטול</button>
+                <button class="modal-action secondary" type="button" onclick="removeButtonIcon()">הסרת הסמל</button>
+                <button class="modal-action primary" type="button" onclick="saveButtonIcon()">שמירת הסמל</button>
+            </div>
+        </div>
+    </div>
+    <div id="toc-modal" class="custom-modal" role="dialog" aria-modal="true" aria-labelledby="toc-modal-title" aria-hidden="true">
+        <form class="custom-modal-box" id="toc-form">
+            <h2 class="modal-heading" id="toc-modal-title">הוספת פרק</h2>
+            <p class="modal-copy">מוסיפים נקודת מעבר מהירה לתוכן העניינים של הספר.</p>
+            <label class="field-label" for="new-chapter-title">שם הפרק</label>
+            <input type="text" id="new-chapter-title" placeholder="למשל: פרק 1 — מבוא" maxlength="120" required>
+            <label class="field-label" for="new-chapter-page">מספר עמוד</label>
+            <input type="number" id="new-chapter-page" placeholder="למשל: 12" min="1" step="1" required>
+            <div class="custom-modal-actions">
+                <button class="modal-action secondary" type="button" onclick="closeTocModal()">ביטול</button>
+                <button class="modal-action primary" type="submit">שמירת פרק</button>
+            </div>
+        </form>
+    </div>
+    <div id="rename-modal" class="custom-modal" role="dialog" aria-modal="true" aria-labelledby="rename-modal-title" aria-hidden="true">
+        <form class="custom-modal-box" id="rename-form">
+            <h2 class="modal-heading" id="rename-modal-title">שינוי שם הספר</h2>
+            <p class="modal-copy">השם החדש יופיע בספרייה ובקורא. קובץ המקור נשאר כפי שהוא.</p>
+            <label class="field-label" for="rename-book-title">שם הספר</label>
+            <input type="text" id="rename-book-title" maxlength="180" required>
+            <div class="custom-modal-actions">
+                <button class="modal-action secondary" type="button" onclick="closeRenameModal()">ביטול</button>
+                <button class="modal-action primary" type="submit">שמירת השם</button>
+            </div>
+        </form>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+</body>
+</html>
